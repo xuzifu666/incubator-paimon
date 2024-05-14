@@ -165,7 +165,7 @@ public class FileMetaUtils {
         String newFileName = fileName.endsWith(subfix) ? fileName : fileName + "." + format;
         Path newPath = new Path(newDir, newFileName);
         rollback.put(newPath, originPath);
-        LOG.info("Migration: rename file from " + originPath + " to " + newPath);
+        LOG.info("Migration: copy file from " + originPath + " to " + newPath);
         fileIO.copyFileUtf8(originPath, newPath);
         return newPath;
     }
