@@ -26,4 +26,6 @@ public interface Migrator {
     void renameTable(boolean ignoreIfNotExists) throws Exception;
 
     public void deleteOriginTable(boolean delete) throws Exception;
+
+    public void saveOriginData(boolean save);
 }

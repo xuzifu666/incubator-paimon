@@ -53,7 +53,8 @@ public class MigrateTableProcedure extends BaseProcedure {
                 ProcedureParameter.required("table", StringType),
                 ProcedureParameter.optional("options", StringType),
                 ProcedureParameter.optional("delete_origin", BooleanType),
-                ProcedureParameter.optional("target_table", StringType)
+                ProcedureParameter.optional("target_table", StringType),
+                ProcedureParameter.optional("save_origin", BooleanType)
             };
 
     private static final StructType OUTPUT_TYPE =
@@ -83,6 +84,7 @@ public class MigrateTableProcedure extends BaseProcedure {
         String properties = args.isNullAt(2) ? null : args.getString(2);
         boolean deleteNeed = args.isNullAt(3) ? true : args.getBoolean(3);
         String targetTable = args.isNullAt(4) ? null : args.getString(4);
+        boolean saveOrigin = args.isNullAt(5) ? false : args.getBoolean(5);
 
         Identifier sourceTableId = Identifier.fromString(sourceTable);
         Identifier tmpTableId =
@@ -104,6 +106,7 @@ public class MigrateTableProcedure extends BaseProcedure {
                             ParameterUtils.parseCommaSeparatedKeyValues(properties));
 
             migrator.deleteOriginTable(deleteNeed);
+            migrator.saveOriginData(saveOrigin);
             migrator.executeMigrate();
             if (StringUtils.isEmpty(targetTable)) {
                 paimonCatalog.renameTable(tmpTableId, sourceTableId, false);

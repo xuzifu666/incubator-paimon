@@ -66,7 +66,8 @@ public class FileMetaUtils {
             Table paimonTable,
             Predicate<FileStatus> filter,
             Path dir,
-            Map<Path, Path> rollback)
+            Map<Path, Path> rollback,
+            boolean saveOrigin)
             throws IOException {
         List<FileStatus> fileStatuses =
                 Arrays.stream(fileIO.listStatus(new Path(location)))
@@ -78,7 +79,13 @@ public class FileMetaUtils {
                 .map(
                         status ->
                                 constructFileMeta(
-                                        format, status, fileIO, paimonTable, dir, rollback))
+                                        format,
+                                        status,
+                                        fileIO,
+                                        paimonTable,
+                                        dir,
+                                        rollback,
+                                        saveOrigin))
                 .collect(Collectors.toList());
     }
 
@@ -99,7 +106,8 @@ public class FileMetaUtils {
             FileIO fileIO,
             Table table,
             Path dir,
-            Map<Path, Path> rollback) {
+            Map<Path, Path> rollback,
+            boolean saveOrigin) {
 
         try {
             FieldStatsCollector.Factory[] factories =
@@ -117,7 +125,13 @@ public class FileMetaUtils {
                                             new RuntimeException(
                                                     "Can't get table stats extractor for format "
                                                             + format));
-            Path newPath = renameFile(fileIO, fileStatus.getPath(), dir, format, rollback);
+            Path newPath = null;
+            if (saveOrigin) {
+                newPath = copyFile(fileIO, fileStatus.getPath(), dir, format, rollback);
+            } else {
+                newPath = renameFile(fileIO, fileStatus.getPath(), dir, format, rollback);
+            }
+
             return constructFileMeta(
                     newPath.getName(),
                     fileStatus.getLen(),
@@ -140,6 +154,19 @@ public class FileMetaUtils {
         rollback.put(newPath, originPath);
         LOG.info("Migration: rename file from " + originPath + " to " + newPath);
         fileIO.rename(originPath, newPath);
+        return newPath;
+    }
+
+    private static Path copyFile(
+            FileIO fileIO, Path originPath, Path newDir, String format, Map<Path, Path> rollback)
+            throws IOException {
+        String subfix = "." + format;
+        String fileName = originPath.getName();
+        String newFileName = fileName.endsWith(subfix) ? fileName : fileName + "." + format;
+        Path newPath = new Path(newDir, newFileName);
+        rollback.put(newPath, originPath);
+        LOG.info("Migration: copy file from " + originPath + " to " + newDir);
+        fileIO.copyFileUtf8(originPath, newDir);
         return newPath;
     }
 

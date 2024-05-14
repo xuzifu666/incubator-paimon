@@ -79,6 +79,7 @@ public class HiveMigrator implements Migrator {
     private final String targetTable;
     private final Map<String, String> options;
     private Boolean delete = true;
+    private boolean saveOrigin = false;
 
     public HiveMigrator(
             HiveCatalog hiveCatalog,
@@ -120,6 +121,11 @@ public class HiveMigrator implements Migrator {
     @Override
     public void deleteOriginTable(boolean delete) {
         this.delete = delete;
+    }
+
+    @Override
+    public void saveOriginData(boolean save) {
+        this.saveOrigin = save;
     }
 
     @Override
@@ -302,7 +308,14 @@ public class HiveMigrator implements Migrator {
 
             migrateTasks.add(
                     new MigrateTask(
-                            fileIO, format, location, paimonTable, partitionRow, path, rollback));
+                            fileIO,
+                            format,
+                            location,
+                            paimonTable,
+                            partitionRow,
+                            path,
+                            rollback,
+                            saveOrigin));
         }
         return migrateTasks;
     }
@@ -316,7 +329,14 @@ public class HiveMigrator implements Migrator {
         String location = sourceTable.getSd().getLocation();
         Path path = paimonTable.store().pathFactory().bucketPath(BinaryRow.EMPTY_ROW, 0);
         return new MigrateTask(
-                fileIO, format, location, paimonTable, BinaryRow.EMPTY_ROW, path, rollback);
+                fileIO,
+                format,
+                location,
+                paimonTable,
+                BinaryRow.EMPTY_ROW,
+                path,
+                rollback,
+                saveOrigin);
     }
 
     private void checkCompatible(Table sourceHiveTable, FileStoreTable paimonTable) {
@@ -370,6 +390,7 @@ public class HiveMigrator implements Migrator {
         private final BinaryRow partitionRow;
         private final Path newDir;
         private final Map<Path, Path> rollback;
+        private boolean saveOrigin = false;
 
         public MigrateTask(
                 FileIO fileIO,
@@ -378,7 +399,8 @@ public class HiveMigrator implements Migrator {
                 FileStoreTable paimonTable,
                 BinaryRow partitionRow,
                 Path newDir,
-                Map<Path, Path> rollback) {
+                Map<Path, Path> rollback,
+                boolean saveOrigin) {
             this.fileIO = fileIO;
             this.format = format;
             this.location = location;
@@ -386,6 +408,7 @@ public class HiveMigrator implements Migrator {
             this.partitionRow = partitionRow;
             this.newDir = newDir;
             this.rollback = rollback;
+            this.saveOrigin = saveOrigin;
         }
 
         @Override
@@ -401,7 +424,8 @@ public class HiveMigrator implements Migrator {
                             paimonTable,
                             HIDDEN_PATH_FILTER,
                             newDir,
-                            rollback);
+                            rollback,
+                            saveOrigin);
             return FileMetaUtils.commitFile(partitionRow, fileMetas);
         }
     }
