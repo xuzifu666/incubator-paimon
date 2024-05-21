@@ -46,8 +46,6 @@ import org.apache.paimon.utils.Preconditions;
 import org.apache.paimon.utils.RecordWriter;
 import org.apache.paimon.utils.StringUtils;
 
-import org.apache.orc.CompressionKind;
-
 import javax.annotation.Nullable;
 
 import java.io.IOException;
@@ -121,10 +119,7 @@ public class AppendOnlyWriter implements RecordWriter<InternalRow>, MemoryOwner 
         this.compactBefore = new ArrayList<>();
         this.compactAfter = new ArrayList<>();
         this.seqNumCounter = new LongCounter(maxSequenceNumber + 1);
-        this.fileCompression =
-                StringUtils.isBlank(fileCompression)
-                        ? CompressionKind.ZSTD.name()
-                        : fileCompression;
+        this.fileCompression = StringUtils.isBlank(fileCompression) ? "zstd" : fileCompression;
         this.spillCompression = spillCompression;
         this.ioManager = ioManager;
         this.statsCollectors = statsCollectors;
