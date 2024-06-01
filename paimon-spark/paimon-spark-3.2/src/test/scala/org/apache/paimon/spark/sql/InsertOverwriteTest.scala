@@ -223,8 +223,8 @@ class InsertOverwriteTest extends PaimonSparkTestBase {
               ""
             }
 
-            val bucketKeyProp = if (hasPk) {
-              ",'bucket-key'='a'"
+            val bucketKeyProp = if (bucket > 0) {
+              ",'bucket-key'='b'"
             } else {
               ""
             }
@@ -269,8 +269,8 @@ class InsertOverwriteTest extends PaimonSparkTestBase {
               ""
             }
 
-            val bucketKeyProp = if (hasPk) {
-              ",'bucket-key'='a',"
+            val bucketKeyProp = if (bucket > 0) {
+              ",'bucket-key'='a'"
             } else {
               ""
             }
