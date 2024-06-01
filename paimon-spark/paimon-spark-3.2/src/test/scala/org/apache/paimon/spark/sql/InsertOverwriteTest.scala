@@ -65,9 +65,15 @@ class InsertOverwriteTest extends PaimonSparkTestBase {
               ""
             }
 
+            val bucketKeyProp = if (bucket > 0) {
+              ",'bucket-key'='b'"
+            } else {
+              ""
+            }
+
             spark.sql(s"""
                          |CREATE TABLE T (a INT, b INT, c STRING)
-                         |TBLPROPERTIES ($primaryKeysProp 'bucket'='$bucket')
+                         |TBLPROPERTIES ($primaryKeysProp 'bucket'='$bucket' $bucketKeyProp)
                          |PARTITIONED BY (a)
                          |""".stripMargin)
 
