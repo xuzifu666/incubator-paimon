@@ -225,7 +225,7 @@ class InsertOverwriteTest extends PaimonSparkTestBase {
 
             spark.sql(s"""
                          |CREATE TABLE T (a INT, b INT, c STRING)
-                         |TBLPROPERTIES ($primaryKeysProp 'bucket'='$bucket')
+                         |TBLPROPERTIES ($primaryKeysProp 'bucket'='$bucket', 'bucket-key'='a')
                          |PARTITIONED BY (a)
                          |""".stripMargin)
 
