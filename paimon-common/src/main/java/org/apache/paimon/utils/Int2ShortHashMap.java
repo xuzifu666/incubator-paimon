@@ -58,8 +58,8 @@ public class Int2ShortHashMap {
     /** Builder of {@link Int2ShortHashMap}. */
     public static class Builder {
 
-        private final IntArrayList keyList = new IntArrayList();
-        private final ShortArrayList valueList = new ShortArrayList();
+        private IntArrayList keyList = new IntArrayList();
+        private ShortArrayList valueList = new ShortArrayList();
 
         public void put(int key, short value) {
             keyList.add(key);
@@ -71,6 +71,10 @@ public class Int2ShortHashMap {
             for (int i = 0; i < keyList.size(); i++) {
                 map.put(keyList.getInt(i), valueList.getShort(i));
             }
+
+            // release memory during gc for large size memory of keyList and valueList
+            keyList = null;
+            valueList = null;
             return map;
         }
     }
