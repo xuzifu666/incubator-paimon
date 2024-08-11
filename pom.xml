@@ -97,7 +97,7 @@ under the License.
         <flink.reuseForks>true</flink.reuseForks>
         <testcontainers.version>1.19.1</testcontainers.version>
 
-        <!-- Can be set to any value to reproduce a specific build. -->
+        <!-- Can be set to any value to reproduce specific build. -->
         <test.randomization.seed/>
         <test.unit.pattern>**/*Test.*</test.unit.pattern>
         <test.flink.main.version>1.20</test.flink.main.version>
