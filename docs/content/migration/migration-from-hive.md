@@ -59,11 +59,11 @@ USE CATALOG PAIMON;
 CALL sys.migrate_table('hive', 'default.hivetable', 'file.format=orc');
 ```
 After invoke, "hivetable" will totally convert to paimon format. Writing and reading the table by old "hive way" will fail.
-We can add our table properties while importing by sys.migrate_table('<database>.<tablename>', '<tableproperties>').
+We can add our table properties while importing by sys.migrate_table('<database>.<tablename>', '<tableproperties>', '<separator>').
 <tableproperties> here should be separated by ",".  For example:
 
 ```sql
-CALL sys.migrate_table('hive', 'my_db.wait_to_upgrate', 'file.format=orc,read.batch-size=2096,write-only=true')
+CALL sys.migrate_table('hive', 'my_db.wait_to_upgrate', 'file.format=orc,read.batch-size=2096,write-only=true', ',')
 ```
 
 If your flink version is below 1.17, you can use flink action to achieve this:
