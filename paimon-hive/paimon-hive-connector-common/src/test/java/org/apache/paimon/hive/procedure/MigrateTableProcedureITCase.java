@@ -151,13 +151,13 @@ public class MigrateTableProcedureITCase extends ActionITCaseBase {
             tEnv.executeSql(
                             "CALL sys.migrate_table(connector => 'hive', source_table => 'default.hivetable', options => 'file.format="
                                     + format
-                                    + "')")
+                                    + "', 6)")
                     .await();
         } else {
             tEnv.executeSql(
                             "CALL sys.migrate_table('hive', 'default.hivetable', 'file.format="
                                     + format
-                                    + "')")
+                                    + "', 6)")
                     .await();
         }
         List<Row> r2 = ImmutableList.copyOf(tEnv.executeSql("SELECT * FROM hivetable").collect());
