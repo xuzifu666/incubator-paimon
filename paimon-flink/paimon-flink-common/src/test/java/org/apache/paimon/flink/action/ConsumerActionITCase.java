@@ -144,6 +144,130 @@ public class ConsumerActionITCase extends ActionITCaseBase {
         }
         Optional<Consumer> consumer3 = consumerManager.consumer("myid");
         assertThat(consumer3).isNotPresent();
+
+        // test for snapshot 0
+        args =
+                Arrays.asList(
+                        "reset_consumer",
+                        "--warehouse",
+                        warehouse,
+                        "--database",
+                        database,
+                        "--table",
+                        tableName,
+                        "--consumer_id",
+                        "myid",
+                        "--next_snapshot",
+                        "2");
+        // reset consumer
+        switch (invoker) {
+            case "action":
+                createAction(ResetConsumerAction.class, args).run();
+                break;
+            case "procedure_indexed":
+                executeSQL(
+                        String.format(
+                                "CALL sys.reset_consumer('%s.%s', 'myid', 2)",
+                                database, tableName));
+                break;
+            case "procedure_named":
+                executeSQL(
+                        String.format(
+                                "CALL sys.reset_consumer(`table` => '%s.%s', consumer_id => 'myid', next_snapshot_id => cast(2 as bigint))",
+                                database, tableName));
+                break;
+            default:
+                throw new UnsupportedOperationException(invoker);
+        }
+
+        // 3 snapshots
+        writeData(rowData(4L, BinaryString.fromString("aa")));
+        writeData(rowData(5L, BinaryString.fromString("bb")));
+        writeData(rowData(6L, BinaryString.fromString("cc")));
+
+        Optional<Consumer> consumer4 = consumerManager.consumer("myid");
+        assertThat(consumer4).isPresent();
+        assertThat(consumer4.get().nextSnapshot()).isEqualTo(2);
+
+        // use consumer streaming read table
+        testStreamingRead(
+                        "SELECT * FROM `"
+                                + tableName
+                                + "` /*+ OPTIONS('consumer-id'='myid','consumer.expiration-time'='3h') */",
+                        Arrays.asList(
+                                changelogRow("+I", 2L, "Hello"),
+                                changelogRow("+I", 3L, "Paimon"),
+                                changelogRow("+I", 4L, "aa"),
+                                changelogRow("+I", 5L, "bb"),
+                                changelogRow("+I", 6L, "cc")))
+                .close();
+
+        // 3 snapshots
+        writeData(rowData(7L, BinaryString.fromString("dd")));
+        writeData(rowData(8L, BinaryString.fromString("ee")));
+        writeData(rowData(9L, BinaryString.fromString("ff")));
+
+        // test for snapshot 10
+        args =
+                Arrays.asList(
+                        "reset_consumer",
+                        "--warehouse",
+                        warehouse,
+                        "--database",
+                        database,
+                        "--table",
+                        tableName,
+                        "--consumer_id",
+                        "myid",
+                        "--next_snapshot",
+                        "15");
+        // reset consumer
+        switch (invoker) {
+            case "action":
+                createAction(ResetConsumerAction.class, args).run();
+                break;
+            case "procedure_indexed":
+                executeSQL(
+                        String.format(
+                                "CALL sys.reset_consumer('%s.%s', 'myid', 15)",
+                                database, tableName));
+                break;
+            case "procedure_named":
+                executeSQL(
+                        String.format(
+                                "CALL sys.reset_consumer(`table` => '%s.%s', consumer_id => 'myid', next_snapshot_id => cast(15 as bigint))",
+                                database, tableName));
+                break;
+            default:
+                throw new UnsupportedOperationException(invoker);
+        }
+
+        Optional<Consumer> consumer5 = consumerManager.consumer("myid");
+        assertThat(consumer5).isPresent();
+        assertThat(consumer5.get().nextSnapshot()).isEqualTo(12);
+
+        // after 10 s add a snapshot
+        new Thread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Thread.sleep(10000);
+                                    writeData(rowData(10L, BinaryString.fromString("gg")));
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        })
+                .start();
+
+        // use consumer streaming read table
+        testStreamingRead(
+                        "SELECT * FROM `"
+                                + tableName
+                                + "` /*+ OPTIONS('consumer-id'='myid','consumer.expiration-time'='3h') */",
+                        Arrays.asList(changelogRow("+I", 10L, "gg")))
+                .close();
     }
 
     @ParameterizedTest

@@ -22,6 +22,9 @@ import org.apache.paimon.consumer.Consumer;
 import org.apache.paimon.consumer.ConsumerManager;
 import org.apache.paimon.table.FileStoreTable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,6 +33,8 @@ public class ResetConsumerAction extends TableActionBase {
 
     private final String consumerId;
     private Long nextSnapshotId;
+
+    private static final Logger LOG = LoggerFactory.getLogger(ResetConsumerAction.class);
 
     protected ResetConsumerAction(
             String warehouse,
@@ -57,7 +62,16 @@ public class ResetConsumerAction extends TableActionBase {
         if (Objects.isNull(nextSnapshotId)) {
             consumerManager.deleteConsumer(consumerId);
         } else {
-            consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+            Long maxSnapshotId = dataTable.snapshotManager().latestSnapshotId();
+            if (nextSnapshotId > maxSnapshotId) {
+                LOG.warn(
+                        String.format(
+                                "Your nextSnapshotId is large than max snapshot id: %s, nextSnapshotId had change to %s",
+                                maxSnapshotId, maxSnapshotId + 1));
+                consumerManager.resetConsumer(consumerId, new Consumer(maxSnapshotId + 1));
+            } else {
+                consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+            }
         }
     }
 }

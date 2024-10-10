@@ -25,6 +25,8 @@ import org.apache.paimon.consumer.ConsumerManager;
 import org.apache.paimon.table.FileStoreTable;
 
 import org.apache.flink.table.procedure.ProcedureContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reset consumer procedure. Usage:
@@ -41,6 +43,8 @@ public class ResetConsumerProcedure extends ProcedureBase {
 
     public static final String IDENTIFIER = "reset_consumer";
 
+    private static final Logger LOG = LoggerFactory.getLogger(ResetConsumerProcedure.class);
+
     public String[] call(
             ProcedureContext procedureContext,
             String tableId,
@@ -54,7 +58,17 @@ public class ResetConsumerProcedure extends ProcedureBase {
                         fileStoreTable.fileIO(),
                         fileStoreTable.location(),
                         fileStoreTable.snapshotManager().branch());
-        consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+
+        Long maxSnapshotId = fileStoreTable.snapshotManager().latestSnapshotId();
+        if (nextSnapshotId > maxSnapshotId) {
+            LOG.warn(
+                    String.format(
+                            "Your nextSnapshotId is large than max snapshot id: %s, nextSnapshotId had change to %s",
+                            maxSnapshotId, maxSnapshotId + 1));
+            consumerManager.resetConsumer(consumerId, new Consumer(maxSnapshotId + 1));
+        } else {
+            consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+        }
 
         return new String[] {"Success"};
     }

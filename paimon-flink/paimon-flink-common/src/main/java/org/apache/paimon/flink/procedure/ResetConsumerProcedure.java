@@ -28,6 +28,8 @@ import org.apache.flink.table.annotation.ArgumentHint;
 import org.apache.flink.table.annotation.DataTypeHint;
 import org.apache.flink.table.annotation.ProcedureHint;
 import org.apache.flink.table.procedure.ProcedureContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reset consumer procedure. Usage:
@@ -43,6 +45,8 @@ import org.apache.flink.table.procedure.ProcedureContext;
 public class ResetConsumerProcedure extends ProcedureBase {
 
     public static final String IDENTIFIER = "reset_consumer";
+
+    private static final Logger LOG = LoggerFactory.getLogger(ResetConsumerProcedure.class);
 
     @ProcedureHint(
             argument = {
@@ -67,7 +71,16 @@ public class ResetConsumerProcedure extends ProcedureBase {
                         fileStoreTable.location(),
                         fileStoreTable.snapshotManager().branch());
         if (nextSnapshotId != null) {
-            consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+            Long maxSnapshotId = fileStoreTable.snapshotManager().latestSnapshotId();
+            if (nextSnapshotId > maxSnapshotId) {
+                LOG.warn(
+                        String.format(
+                                "Your nextSnapshotId is large than max snapshot id: %s, nextSnapshotId had change to %s",
+                                maxSnapshotId, maxSnapshotId + 1));
+                consumerManager.resetConsumer(consumerId, new Consumer(maxSnapshotId + 1));
+            } else {
+                consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+            }
         } else {
             consumerManager.deleteConsumer(consumerId);
         }

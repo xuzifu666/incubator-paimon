@@ -29,6 +29,8 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.spark.sql.types.DataTypes.LongType;
 import static org.apache.spark.sql.types.DataTypes.StringType;
@@ -52,6 +54,8 @@ public class ResetConsumerProcedure extends BaseProcedure {
                 ProcedureParameter.required("consumerId", StringType),
                 ProcedureParameter.optional("nextSnapshotId", LongType)
             };
+
+    private static final Logger LOG = LoggerFactory.getLogger(ResetConsumerProcedure.class);
 
     private static final StructType OUTPUT_TYPE =
             new StructType(
@@ -90,7 +94,17 @@ public class ResetConsumerProcedure extends BaseProcedure {
                     if (nextSnapshotId == null) {
                         consumerManager.deleteConsumer(consumerId);
                     } else {
-                        consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+                        Long maxSnapshotId = fileStoreTable.snapshotManager().latestSnapshotId();
+                        if (nextSnapshotId > maxSnapshotId) {
+                            LOG.warn(
+                                    String.format(
+                                            "Your nextSnapshotId is large than max snapshot id: %s, nextSnapshotId had change to %s",
+                                            maxSnapshotId, maxSnapshotId + 1));
+                            consumerManager.resetConsumer(
+                                    consumerId, new Consumer(maxSnapshotId + 1));
+                        } else {
+                            consumerManager.resetConsumer(consumerId, new Consumer(nextSnapshotId));
+                        }
                     }
 
                     InternalRow outputRow = newInternalRow(true);
