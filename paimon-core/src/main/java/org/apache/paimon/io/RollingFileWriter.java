@@ -86,7 +86,7 @@ public class RollingFileWriter<T, R> implements FileWriter<T, List<R>> {
             }
         } catch (Throwable e) {
             LOG.warn(
-                    "Exception occurs when writing file "
+                    "Exception occurs when aa file "
                             + (currentWriter == null ? null : currentWriter.path())
                             + ". Cleaning up.",
                     e);
