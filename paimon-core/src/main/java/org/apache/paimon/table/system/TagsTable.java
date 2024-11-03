@@ -171,7 +171,8 @@ public class TagsTable implements ReadonlyTable {
                 return false;
             }
             TagsSplit that = (TagsSplit) o;
-            return Objects.equals(location, that.location) && Objects.equals(tagPredicate, that.tagPredicate);
+            return Objects.equals(location, that.location)
+                    && Objects.equals(tagPredicate, that.tagPredicate);
         }
 
         @Override
@@ -236,7 +237,8 @@ public class TagsTable implements ReadonlyTable {
                         for (Predicate leaf : children) {
                             if (leaf instanceof LeafPredicate
                                     && (((LeafPredicate) leaf).function() instanceof Equal)) {
-                                String equalValue = ((LeafPredicate) predicate).literals().get(0).toString();
+                                String equalValue =
+                                        ((LeafPredicate) leaf).literals().get(0).toString();
                                 predicateMap.put(equalValue, tagManager.tag(equalValue));
                             } else {
                                 predicateMap.clear();
