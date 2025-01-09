@@ -133,6 +133,54 @@ abstract class DDLWithHiveCatalogTestBase extends PaimonHiveTestBase {
     }
   }
 
+  test("Paimon Drop test with hive catalog: drop partition for paimon table sparkCatalogName") {
+    Seq(paimonHiveCatalogName).foreach {
+      catalogName =>
+        spark.sql(s"USE $catalogName")
+        withTempDir {
+          dBLocation =>
+            withDatabase("paimon_db") {
+              val comment = "this is a test comment"
+              spark.sql(
+                s"CREATE DATABASE paimon_db LOCATION '${dBLocation.getCanonicalPath}' COMMENT '$comment'")
+              Assertions.assertEquals(getDatabaseLocation("paimon_db"), dBLocation.getCanonicalPath)
+              Assertions.assertEquals(getDatabaseComment("paimon_db"), comment)
+
+              withTable("paimon_db.paimon_tbl") {
+                spark.sql(s"""
+                             |CREATE TABLE paimon_db.paimon_tbl (id STRING, name STRING, pt STRING)
+                             |USING PAIMON
+                             |PARTITIONED BY (pt)
+                             |TBLPROPERTIES('metastore.partitioned-table' = 'true')
+                             |""".stripMargin)
+                Assertions.assertEquals(
+                  getTableLocation("paimon_db.paimon_tbl"),
+                  s"${dBLocation.getCanonicalPath}/paimon_tbl")
+                spark.sql("insert into paimon_db.paimon_tbl select '1', 'n', 'cc'")
+
+                spark.sql("ALTER TABLE paimon_db.paimon_tbl DROP PARTITION (`dt` = 'cc')")
+              }
+
+              // disable metastore.partitioned-table
+              withTable("paimon_db.paimon_tbl2") {
+                spark.sql(s"""
+                             |CREATE TABLE paimon_db.paimon_tbl2 (id STRING, name STRING, pt STRING)
+                             |USING PAIMON
+                             |PARTITIONED BY (pt)
+                             |TBLPROPERTIES('metastore.partitioned-table' = 'false')
+                             |""".stripMargin)
+                Assertions.assertEquals(
+                  getTableLocation("paimon_db.paimon_tbl2"),
+                  s"${dBLocation.getCanonicalPath}/paimon_tbl2")
+                spark.sql("insert into paimon_db.paimon_tbl2 select '1', 'n', 'cc'")
+
+                spark.sql("ALTER TABLE paimon_db.paimon_tbl2 DROP PARTITION (`dt` = 'cc')")
+              }
+            }
+        }
+    }
+  }
+
   test("Paimon DDL with hive catalog: create partition for paimon table sparkCatalogName") {
     Seq(paimonHiveCatalogName).foreach {
       catalogName =>

@@ -316,7 +316,8 @@ abstract class AbstractFileStore<T> implements FileStore<T> {
                 newCommit(commitUser),
                 metastoreClient,
                 options.endInputCheckPartitionExpire(),
-                options.partitionExpireMaxNum());
+                options.partitionExpireMaxNum(),
+                options.partitionedTableInMetastore());
     }
 
     @Override

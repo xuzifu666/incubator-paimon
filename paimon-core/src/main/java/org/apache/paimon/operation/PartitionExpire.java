@@ -55,6 +55,7 @@ public class PartitionExpire {
     private final PartitionExpireStrategy strategy;
     private final boolean endInputCheckPartitionExpire;
     private int maxExpireNum;
+    private boolean partitioned;
 
     public PartitionExpire(
             Duration expirationTime,
@@ -64,7 +65,8 @@ public class PartitionExpire {
             FileStoreCommit commit,
             @Nullable MetastoreClient metastoreClient,
             boolean endInputCheckPartitionExpire,
-            int maxExpireNum) {
+            int maxExpireNum,
+            boolean partitioned) {
         this.expirationTime = expirationTime;
         this.checkInterval = checkInterval;
         this.strategy = strategy;
@@ -74,6 +76,7 @@ public class PartitionExpire {
         this.lastCheck = LocalDateTime.now();
         this.endInputCheckPartitionExpire = endInputCheckPartitionExpire;
         this.maxExpireNum = maxExpireNum;
+        this.partitioned = partitioned;
     }
 
     public PartitionExpire(
@@ -92,7 +95,8 @@ public class PartitionExpire {
                 commit,
                 metastoreClient,
                 false,
-                maxExpireNum);
+                maxExpireNum,
+                false);
     }
 
     public PartitionExpire withLock(Lock lock) {
@@ -158,7 +162,7 @@ public class PartitionExpire {
             // convert partition value to partition string, and limit the partition num
             expired = convertToPartitionString(expiredPartValues);
             LOG.info("Expire Partitions: {}", expired);
-            if (metastoreClient != null) {
+            if (metastoreClient != null && partitioned) {
                 deleteMetastorePartitions(expired);
             }
             commit.dropPartitions(expired, commitIdentifier);
