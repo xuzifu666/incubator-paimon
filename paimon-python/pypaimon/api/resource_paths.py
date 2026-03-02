@@ -27,6 +27,9 @@ class ResourcePaths:
     DATABASES = "databases"
     TABLES = "tables"
     TABLE_DETAILS = "table-details"
+    TAGS = "tags"
+    SNAPSHOTS = "snapshots"
+    PARTITIONS = "partitions"
 
     def __init__(self, prefix: str):
         self.base_path = "/{}/{}".format(self.V1, prefix).rstrip("/")
@@ -70,3 +73,15 @@ class ResourcePaths:
     def commit_table(self, database_name: str, table_name: str) -> str:
         return ("{}/{}/{}/{}/{}/commit".format(self.base_path, self.DATABASES, RESTUtil.encode_string(database_name),
                 self.TABLES, RESTUtil.encode_string(table_name)))
+
+    def tags(self, database_name: str, table_name: str) -> str:
+        return ("{}/{}/{}/{}/{}/{}".format(self.base_path, self.DATABASES, RESTUtil.encode_string(database_name),
+                self.TABLES, RESTUtil.encode_string(table_name), self.TAGS))
+
+    def tag(self, database_name: str, table_name: str, tag_name: str) -> str:
+        return ("{}/{}/{}/{}/{}/{}/{}".format(self.base_path, self.DATABASES, RESTUtil.encode_string(database_name),
+                self.TABLES, RESTUtil.encode_string(table_name), self.TAGS, RESTUtil.encode_string(tag_name)))
+
+    def rename_tag(self, database_name: str, table_name: str) -> str:
+        return ("{}/{}/{}/{}/{}/{}/{}".format(self.base_path, self.DATABASES, RESTUtil.encode_string(database_name),
+                self.TABLES, RESTUtil.encode_string(table_name), self.TAGS, "rename"))

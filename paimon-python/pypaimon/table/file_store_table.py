@@ -161,6 +161,17 @@ class FileStoreTable(Table):
             ValueError: If old_name or new_name is blank, old_name doesn't exist,
                        or new_name already exists
         """
+        # Check if this is a REST catalog that supports version management
+        if (self.catalog_environment.catalog_loader is not None
+                and self.catalog_environment.supports_version_management):
+            catalog = self.catalog_environment.catalog_loader.load()
+            # Check if catalog is RESTCatalog
+            from pypaimon.catalog.rest.rest_catalog import RESTCatalog
+            if isinstance(catalog, RESTCatalog):
+                catalog.rename_tag(self.catalog_environment.identifier, old_name, new_name)
+                return
+
+        # Use file system based tag manager for local catalogs
         tag_mgr = self.tag_manager()
         tag_mgr.rename_tag(old_name, new_name)
 

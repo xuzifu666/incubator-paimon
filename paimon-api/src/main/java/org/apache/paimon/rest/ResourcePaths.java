@@ -261,6 +261,18 @@ public class ResourcePaths {
                 encodeString(tagName));
     }
 
+    public String renameTag(String databaseName, String objectName) {
+        return SLASH.join(
+                V1,
+                prefix,
+                DATABASES,
+                encodeString(databaseName),
+                TABLES,
+                encodeString(objectName),
+                TAGS,
+                "rename");
+    }
+
     public String views(String databaseName) {
         return SLASH.join(V1, prefix, DATABASES, encodeString(databaseName), VIEWS);
     }

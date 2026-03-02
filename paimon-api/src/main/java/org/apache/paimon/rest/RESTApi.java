@@ -48,6 +48,7 @@ import org.apache.paimon.rest.requests.ForwardBranchRequest;
 import org.apache.paimon.rest.requests.MarkDonePartitionsRequest;
 import org.apache.paimon.rest.requests.RegisterTableRequest;
 import org.apache.paimon.rest.requests.RenameTableRequest;
+import org.apache.paimon.rest.requests.RenameTagRequest;
 import org.apache.paimon.rest.requests.RollbackTableRequest;
 import org.apache.paimon.rest.responses.AlterDatabaseResponse;
 import org.apache.paimon.rest.responses.AuthTableQueryResponse;
@@ -990,6 +991,25 @@ public class RESTApi {
         client.delete(
                 resourcePaths.tag(
                         identifier.getDatabaseName(), identifier.getObjectName(), tagName),
+                restAuthFunction);
+    }
+
+    /**
+     * Rename tag for table.
+     *
+     * @param identifier database name and table name.
+     * @param oldTagName old tag name
+     * @param newTagName new tag name
+     * @throws NoSuchResourceException Exception thrown on HTTP 404 means the tag not exists
+     * @throws AlreadyExistsException Exception thrown on HTTP 409 means the new tag already exists
+     * @throws ForbiddenException Exception thrown on HTTP 403 means don't have the permission for
+     *     this table
+     */
+    public void renameTag(Identifier identifier, String oldTagName, String newTagName) {
+        RenameTagRequest request = new RenameTagRequest(oldTagName, newTagName);
+        client.post(
+                resourcePaths.renameTag(identifier.getDatabaseName(), identifier.getObjectName()),
+                request,
                 restAuthFunction);
     }
 

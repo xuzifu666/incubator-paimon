@@ -1095,6 +1095,33 @@ public class RESTCatalog implements Catalog {
         }
     }
 
+    /**
+     * Rename tag for table.
+     *
+     * @param identifier database name and table name.
+     * @param oldTagName old tag name
+     * @param newTagName new tag name
+     * @throws TableNotExistException if the table does not exist
+     * @throws TagNotExistException if the old tag does not exist
+     * @throws TagAlreadyExistException if the new tag already exists
+     * @throws TableNoPermissionException if don't have the permission for this table
+     */
+    public void renameTag(Identifier identifier, String oldTagName, String newTagName)
+            throws TableNotExistException, TagNotExistException, TagAlreadyExistException {
+        try {
+            api.renameTag(identifier, oldTagName, newTagName);
+        } catch (NoSuchResourceException e) {
+            if (StringUtils.equals(e.resourceType(), ErrorResponse.RESOURCE_TYPE_TAG)) {
+                throw new TagNotExistException(identifier, oldTagName);
+            }
+            throw new TableNotExistException(identifier);
+        } catch (AlreadyExistsException e) {
+            throw new TagAlreadyExistException(identifier, newTagName);
+        } catch (ForbiddenException e) {
+            throw new TableNoPermissionException(identifier, e);
+        }
+    }
+
     @Override
     public boolean caseSensitive() {
         return context.options().getOptional(CASE_SENSITIVE).orElse(true);

@@ -84,3 +84,12 @@ class AlterTableRequest(RESTRequest):
     FIELD_CHANGES = "changes"
 
     changes: List[SchemaChange] = json_field(FIELD_CHANGES)
+
+
+@dataclass
+class RenameTagRequest(RESTRequest):
+    FIELD_OLD_TAG_NAME = "oldTagName"
+    FIELD_NEW_TAG_NAME = "newTagName"
+
+    old_tag_name: str = json_field(FIELD_OLD_TAG_NAME)
+    new_tag_name: str = json_field(FIELD_NEW_TAG_NAME)

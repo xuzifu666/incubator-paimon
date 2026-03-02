@@ -26,7 +26,8 @@ from pypaimon.catalog.catalog_environment import CatalogEnvironment
 from pypaimon.catalog.catalog_exception import (
     TableNotExistException, DatabaseAlreadyExistException,
     TableAlreadyExistException, DatabaseNotExistException,
-    TableNoPermissionException, DatabaseNoPermissionException
+    TableNoPermissionException, DatabaseNoPermissionException,
+    TagNotExistException, TagAlreadyExistException
 )
 from pypaimon.catalog.database import Database
 from pypaimon.catalog.rest.property_change import PropertyChange
@@ -109,6 +110,34 @@ class RESTCatalog(Catalog):
         except Exception as e:
             # Handle other exceptions that might be thrown by the API
             raise RuntimeError(f"Failed to commit snapshot for table {identifier.get_full_name()}: {e}") from e
+
+    def rename_tag(self, identifier: Identifier, old_tag_name: str, new_tag_name: str) -> None:
+        """
+        Rename a tag for a table.
+
+        Args:
+            identifier: Path of the table
+            old_tag_name: Old tag name
+            new_tag_name: New tag name
+
+        Raises:
+            TableNotExistException: If the target table does not exist
+            TagNotExistException: If the old tag does not exist
+            TagAlreadyExistException: If the new tag already exists
+            TableNoPermissionException: If no permission to access this table
+        """
+        try:
+            self.rest_api.rename_tag(identifier, old_tag_name, new_tag_name)
+        except NoSuchResourceException as e:
+            if e.resource_type == "tag":
+                raise TagNotExistException(identifier, old_tag_name) from e
+            raise TableNotExistException(identifier) from e
+        except AlreadyExistsException as e:
+            raise TagAlreadyExistException(identifier, new_tag_name) from e
+        except ForbiddenException as e:
+            raise TableNoPermissionException(identifier) from e
+        except Exception as e:
+            raise RuntimeError(f"Failed to rename tag for table {identifier.get_full_name()}: {e}") from e
 
     def list_databases(self) -> List[str]:
         return self.rest_api.list_databases()

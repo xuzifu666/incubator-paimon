@@ -20,7 +20,8 @@ from typing import Callable, Dict, List, Optional, Union
 
 from pypaimon.api.api_request import (AlterDatabaseRequest, AlterTableRequest, CommitTableRequest,
                                       CreateDatabaseRequest,
-                                      CreateTableRequest, RenameTableRequest)
+                                      CreateTableRequest, RenameTableRequest,
+                                      RenameTagRequest)
 from pypaimon.api.api_response import (CommitTableResponse, ConfigResponse,
                                        GetDatabaseResponse, GetTableResponse,
                                        GetTableTokenResponse,
@@ -357,6 +358,32 @@ class RESTApi:
             self.rest_auth_function
         )
         return response.is_success()
+
+    def rename_tag(self, identifier: Identifier, old_tag_name: str, new_tag_name: str) -> None:
+        """
+        Rename tag for table.
+
+        Args:
+            identifier: Database name and table name
+            old_tag_name: Old tag name
+            new_tag_name: New tag name
+
+        Raises:
+            NoSuchResourceException: Exception thrown on HTTP 404 means the tag not exists
+            AlreadyExistsException: Exception thrown on HTTP 409 means the new tag already exists
+            ForbiddenException: Exception thrown on HTTP 403 means don't have the permission for this table
+        """
+        database_name, table_name = self.__validate_identifier(identifier)
+        if not old_tag_name or not old_tag_name.strip():
+            raise ValueError("Old tag name cannot be empty")
+        if not new_tag_name or not new_tag_name.strip():
+            raise ValueError("New tag name cannot be empty")
+
+        request = RenameTagRequest(old_tag_name.strip(), new_tag_name.strip())
+        return self.client.post(
+            self.resource_paths.rename_tag(database_name, table_name),
+            request,
+            self.rest_auth_function)
 
     @staticmethod
     def __validate_identifier(identifier: Identifier):

@@ -461,3 +461,32 @@ class ApiTest(unittest.TestCase):
             self.assertEqual("normal_table_2", second_page.next_page_token)
         finally:
             server.shutdown()
+
+    def test_rest_api_rename_tag_parameter_validation(self):
+        rest_api = RESTApi.__new__(RESTApi)
+
+        # Test rename_tag with None identifier
+        with self.assertRaises(ValueError) as context:
+            rest_api.rename_tag(None, "old_tag", "new_tag")
+        self.assertIn("Identifier cannot be None", str(context.exception))
+
+        # Test rename_tag with empty old_tag_name
+        with self.assertRaises(ValueError) as context:
+            rest_api.rename_tag(Identifier.from_string("default.table"), "", "new_tag")
+        self.assertIn("Old tag name cannot be empty", str(context.exception))
+
+        # Test rename_tag with whitespace old_tag_name
+        with self.assertRaises(ValueError) as context:
+            rest_api.rename_tag(Identifier.from_string("default.table"), "   ", "new_tag")
+        self.assertIn("Old tag name cannot be empty", str(context.exception))
+
+        # Test rename_tag with empty new_tag_name
+        with self.assertRaises(ValueError) as context:
+            rest_api.rename_tag(Identifier.from_string("default.table"), "old_tag", "")
+        self.assertIn("New tag name cannot be empty", str(context.exception))
+
+        # Test rename_tag with whitespace new_tag_name
+        with self.assertRaises(ValueError) as context:
+            rest_api.rename_tag(Identifier.from_string("default.table"), "old_tag", "   ")
+        self.assertIn("New tag name cannot be empty", str(context.exception))
+
