@@ -154,3 +154,21 @@ class DialectAlreadyExistException(CatalogException):
         self.identifier = identifier
         self.dialect = dialect
         super().__init__(f"Dialect {dialect} already exists in {identifier.get_full_name()}")
+
+
+class TagNotExistException(CatalogException):
+    """Tag not exist exception"""
+
+    def __init__(self, identifier: Identifier, tag: str):
+        self.identifier = identifier
+        self.tag = tag
+        super().__init__(f"Tag {tag} does not exist in {identifier.get_full_name()}")
+
+
+class TagAlreadyExistException(CatalogException):
+    """Tag already exist exception"""
+
+    def __init__(self, identifier: Identifier, tag: str):
+        self.identifier = identifier
+        self.tag = tag
+        super().__init__(f"Tag {tag} already exists in {identifier.get_full_name()}")

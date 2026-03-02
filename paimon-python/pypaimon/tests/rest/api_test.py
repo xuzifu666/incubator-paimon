@@ -490,3 +490,84 @@ class ApiTest(unittest.TestCase):
             rest_api.rename_tag(Identifier.from_string("default.table"), "old_tag", "   ")
         self.assertIn("New tag name cannot be empty", str(context.exception))
 
+    def test_rest_api_rename_tag(self):
+        """Test rename_tag with actual server"""
+        config = ConfigResponse(defaults={"prefix": "mock-test"})
+        token = str(uuid.uuid4())
+        server = RESTCatalogServer(
+            data_path="/tmp/test_warehouse",
+            auth_provider=BearTokenAuthProvider(token),
+            config=config,
+            warehouse="test_warehouse"
+        )
+        try:
+            server.start()
+
+            # Setup database and table
+            server.database_store.update({
+                "default": server.mock_database("default", {"env": "test"})
+            })
+
+            data_fields = [
+                DataField(0, "id", AtomicType("INT"), "id"),
+            ]
+            schema = TableSchema(
+                TableSchema.CURRENT_VERSION,
+                len(data_fields),
+                data_fields,
+                len(data_fields),
+                [],
+                [],
+                {},
+                "",
+            )
+            table_metadata = TableMetadata(
+                uuid=str(uuid.uuid4()),
+                is_external=True,
+                schema=schema
+            )
+            server.table_metadata_store.update({
+                "default.test_table": table_metadata
+            })
+
+            # Initialize tag store with some tags
+            table_full_name = "default.test_table"
+            server.tag_store[table_full_name] = {
+                "tag1": "snapshot-1",
+                "tag2": "snapshot-2",
+                "tag3": "snapshot-3"
+            }
+
+            # Create REST API client
+            options = {
+                'uri': f"http://localhost:{server.port}",
+                'warehouse': 'test_warehouse',
+                'dlf.region': 'cn-hangzhou',
+                "token.provider": "bear",
+                'token': token
+            }
+            rest_api = RESTApi(options)
+
+            # Test 1: Normal rename operation
+            identifier = Identifier.from_string("default.test_table")
+            rest_api.rename_tag(identifier, "tag1", "renamed_tag1")
+
+            # Verify tag was renamed
+            tags = server.tag_store[table_full_name]
+            self.assertIn("renamed_tag1", tags)
+            self.assertNotIn("tag1", tags)
+            self.assertEqual(tags["renamed_tag1"], "snapshot-1")
+
+            # Test 2: Rename with whitespace trimming
+            rest_api.rename_tag(identifier, " tag2 ", " renamed_tag2 ")
+            tags = server.tag_store[table_full_name]
+            self.assertIn("renamed_tag2", tags)
+            self.assertNotIn("tag2", tags)
+
+            # Test 3: Verify other tags remain unchanged
+            self.assertIn("tag3", tags)
+            self.assertEqual(tags["tag3"], "snapshot-3")
+
+        finally:
+            server.shutdown()
+

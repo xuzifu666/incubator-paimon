@@ -31,7 +31,8 @@ if TYPE_CHECKING:
     from pypaimon.catalog.rest.rest_token import RESTToken
 
 from pypaimon.api.api_request import (AlterTableRequest, CreateDatabaseRequest,
-                                      CreateTableRequest, RenameTableRequest)
+                                      CreateTableRequest, RenameTableRequest,
+                                      RenameTagRequest)
 from pypaimon.api.api_response import (ConfigResponse, GetDatabaseResponse,
                                        GetTableResponse, ListDatabasesResponse,
                                        ListTablesResponse, PagedList,
@@ -218,6 +219,7 @@ class RESTCatalogServer:
         self.no_permission_databases: List[str] = []
         self.no_permission_tables: List[str] = []
         self.table_token_store: Dict[str, "RESTToken"] = {}
+        self.tag_store: Dict[str, Dict[str, str]] = {}  # table_full_name -> {old_tag: new_tag}
 
         # Initialize mock catalog (simplified)
         self.data_path = data_path
@@ -482,6 +484,14 @@ class RESTCatalogServer:
                 return self._table_token_handle(method, lookup_identifier)
             else:
                 return self._mock_response(ErrorResponse(None, None, "Not Found", 404), 404)
+        elif len(path_parts) >= 5:
+            # Tag-related operations (e.g., tags/rename)
+            resource_type = path_parts[3]
+            if resource_type == ResourcePaths.TAGS and len(path_parts) == 5:
+                operation = path_parts[4]
+                if operation == "rename":
+                    return self._rename_tag_handle(method, data, lookup_identifier)
+            return self._mock_response(ErrorResponse(None, None, "Not Found", 404), 404)
         return self._mock_response(ErrorResponse(None, None, "Not Found", 404), 404)
 
     def _databases_api_handler(self, method: str, data: str,
@@ -608,6 +618,48 @@ class RESTCatalogServer:
             )
 
         return self._mock_response(response, 200)
+
+    def _rename_tag_handle(self, method: str, data: str, identifier: Identifier) -> Tuple[str, int]:
+        """Handle tag rename operations"""
+        if method != "POST":
+            return self._mock_response(ErrorResponse(None, None, "Method Not Allowed", 405), 405)
+
+        # Check if table exists
+        if identifier.get_full_name() not in self.table_metadata_store:
+            raise TableNotExistException(identifier)
+
+        rename_request = JSON.from_json(data, RenameTagRequest)
+        old_tag_name = rename_request.old_tag_name
+        new_tag_name = rename_request.new_tag_name
+
+        # Initialize tag store for this table if not exists
+        table_full_name = identifier.get_full_name()
+        if table_full_name not in self.tag_store:
+            self.tag_store[table_full_name] = {}
+
+        tags = self.tag_store[table_full_name]
+
+        # Check if old tag exists
+        if old_tag_name not in tags:
+            response = ErrorResponse(
+                ErrorResponse.RESOURCE_TYPE_TAG, old_tag_name,
+                f"Tag '{old_tag_name}' does not exist", 404
+            )
+            return self._mock_response(response, 404)
+
+        # Check if new tag already exists
+        if new_tag_name in tags:
+            response = ErrorResponse(
+                ErrorResponse.RESOURCE_TYPE_TAG, new_tag_name,
+                f"Tag '{new_tag_name}' already exists", 409
+            )
+            return self._mock_response(response, 409)
+
+        # Rename tag
+        tags[new_tag_name] = tags[old_tag_name]
+        del tags[old_tag_name]
+
+        return self._mock_response("", 200)
 
     def set_table_token(self, identifier: Identifier, token: "RESTToken") -> None:
         self.table_token_store[identifier.get_full_name()] = token
