@@ -12,7 +12,7 @@ Background and documentation are available at https://paimon.apache.org
 `Paimon`'s former name was `Flink Table Store`, developed from the Flink community. The architecture refers to some 
 design concepts of Iceberg. Thanks to Apache Flink and Apache Iceberg.
 
-## Collaboration
+## 123Collaboration
 
 Paimon tracks issues in GitHub and prefers to receive contributions as pull requests.
 
