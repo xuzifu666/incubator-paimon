@@ -16,7 +16,7 @@ design concepts of Iceberg. Thanks to Apache Flink and Apache Iceberg.
 
 Paimon tracks issues in GitHub and prefers to receive contributions as pull requests.
 
-## Mailing Lists
+## Mailing Lists infomation
 
 <table class="table table-striped">
   <thead>
