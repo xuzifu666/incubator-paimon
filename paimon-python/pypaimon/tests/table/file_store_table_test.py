@@ -57,7 +57,7 @@ class FileStoreTableTest(unittest.TestCase):
         """Test copy method with new options."""
         new_options = {"new.option": "new_value", "bucket": "2"}
 
-        # Call copy method
+        # Call copy method 1
         copied_table = self.table.copy(new_options)
 
         # Verify the copied table is a new instance
