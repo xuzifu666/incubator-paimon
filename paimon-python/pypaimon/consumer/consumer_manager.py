@@ -23,7 +23,7 @@ from pypaimon.consumer.consumer import Consumer
 
 
 class ConsumerManager:
-    """Manages consumer state stored at {table_path}/consumer/consumer-{id}."""
+    """Manage consumer state stored at {table_path}/consumer/consumer-{id}."""
 
     CONSUMER_PREFIX = "consumer-"
 
