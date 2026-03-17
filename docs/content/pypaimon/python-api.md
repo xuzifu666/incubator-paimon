@@ -847,7 +847,7 @@ print(branch_manager.consumers())  # Consumers on feature branch
 
 The following shows the supported features of Python Paimon compared to Java Paimon:
 
-**Catalog Level**
+**Catalog Levels**
 
 - FileSystemCatalog
 - RestCatalog
