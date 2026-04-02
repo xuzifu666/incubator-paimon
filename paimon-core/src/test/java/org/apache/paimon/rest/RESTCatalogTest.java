@@ -3145,10 +3145,18 @@ public abstract class RESTCatalogTest extends CatalogTestBase {
         return true;
     }
 
-    // TODO implement this
     @Override
     @Test
-    public void testTableUUID() {}
+    public void testTableUUID() throws Exception {
+        catalog.createDatabase("test_db", false);
+        Identifier identifier = Identifier.create("test_db", "test_table");
+        catalog.createTable(identifier, DEFAULT_TABLE_SCHEMA, false);
+        Table table = catalog.getTable(identifier);
+        String uuid = table.uuid();
+        assertThat(uuid).startsWith(identifier.getFullName() + ".");
+        assertThat(Long.parseLong(uuid.substring((identifier.getFullName() + ".").length())))
+                .isGreaterThan(0);
+    }
 
     @Test
     public void testCreateExternalTable(@TempDir java.nio.file.Path path) throws Exception {
