@@ -24,8 +24,10 @@ import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.data.JoinedRow;
 import org.apache.paimon.hive.RowDataContainer;
+import org.apache.paimon.io.DataFileMeta;
 import org.apache.paimon.reader.RecordReaderIterator;
 import org.apache.paimon.table.FileStoreTable;
+import org.apache.paimon.table.source.DataSplit;
 import org.apache.paimon.table.source.ReadBuilder;
 import org.apache.paimon.utils.ProjectedRow;
 
@@ -68,6 +70,11 @@ public class PaimonRecordReader implements RecordReader<Void, RowDataContainer> 
     @Nullable private final JoinedRow addTagToPartFieldRow;
 
     private float progress;
+
+    // Fields for precise progress tracking
+    private final long totalRowCount;
+    private long completedRows;
+    private final boolean supportsRowCountTracking;
 
     /**
      * @param paimonColumns columns stored in Paimon table
@@ -118,6 +125,35 @@ public class PaimonRecordReader implements RecordReader<Void, RowDataContainer> 
         } else {
             addTagToPartFieldRow = null;
         }
+
+        // Calculate total row count for precise progress tracking
+        long calculatedTotalRowCount = 0;
+        boolean rowCountAvailable = true;
+        try {
+            DataSplit dataSplit = split.split();
+            for (DataFileMeta file : dataSplit.dataFiles()) {
+                long fileRowCount = file.rowCount();
+                if (fileRowCount <= 0) {
+                    // If any file has invalid row count, fall back to file size based estimation
+                    rowCountAvailable = false;
+                    break;
+                }
+                calculatedTotalRowCount += fileRowCount;
+            }
+        } catch (Exception e) {
+            // If we can't access DataSplit or data files, fall back to size-based progress
+            rowCountAvailable = false;
+        }
+
+        if (rowCountAvailable && calculatedTotalRowCount > 0) {
+            this.totalRowCount = calculatedTotalRowCount;
+            this.supportsRowCountTracking = true;
+        } else {
+            // Fall back to size-based progress (less accurate)
+            this.totalRowCount = splitLength > 0 ? splitLength : 1; // Use split length as fallback
+            this.supportsRowCountTracking = false;
+        }
+        this.completedRows = 0;
         this.progress = 0;
     }
 
@@ -137,7 +173,20 @@ public class PaimonRecordReader implements RecordReader<Void, RowDataContainer> 
             if (addTagToPartFieldRow != null) {
                 value.set(addTagToPartFieldRow.replace(value.get(), addTagToPartFieldRow.row2()));
             }
+
+            // Update progress after successfully reading a record
+            updateProgress();
             return true;
+        }
+    }
+
+    private void updateProgress() {
+        completedRows++;
+        if (supportsRowCountTracking) {
+            progress = Math.min(1.0f, (float) completedRows / totalRowCount);
+        } else {
+            // Size-based progress (less accurate, but better than nothing)
+            progress = Math.min(1.0f, progress + (1.0f / Math.max(1, totalRowCount / 1024 / 1024)));
         }
     }
 
@@ -167,9 +216,9 @@ public class PaimonRecordReader implements RecordReader<Void, RowDataContainer> 
 
     @Override
     public float getProgress() throws IOException {
-        // currently the value of progress is either 0 or 1
-        // only when the reading finishes will this be set to 1
-        // TODO make this more precise
+        // Precise progress tracking based on record counts
+        // - If row counts are available from DataFileMeta.rowCount(), use row-based progress
+        // - Otherwise, fall back to size-based progress estimation
         return progress;
     }
 
