@@ -173,6 +173,7 @@ public class PaimonRecordReaderTest {
         conf.set(CatalogOptions.WAREHOUSE, tempDir.toString());
         conf.set(CoreOptions.FILE_FORMAT, CoreOptions.FILE_FORMAT_AVRO);
         conf.set("bucket", "1");
+        conf.set("bucket-key", "a");
         Table table =
                 FileStoreTestUtils.createFileStoreTable(
                         conf,
@@ -261,6 +262,8 @@ public class PaimonRecordReaderTest {
         Options conf = new Options();
         conf.set(CatalogOptions.WAREHOUSE, tempDir.toString());
         conf.set(CoreOptions.FILE_FORMAT, CoreOptions.FILE_FORMAT_AVRO);
+        conf.set("bucket", "1");
+        conf.set("bucket-key", "a");
         Table table =
                 FileStoreTestUtils.createFileStoreTable(
                         conf,
